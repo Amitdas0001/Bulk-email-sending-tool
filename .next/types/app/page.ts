@@ -1,4 +1,4 @@
-// File: C:\Users\AMIT DASH\OneDrive\Desktop\email\email-marketing-saas\src\app\page.tsx
+// File: D:\SOFTWARES\email-marketing-saas\Bulk-email-sending-tool\src\app\page.tsx
 import * as entry from '../../../src/app/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

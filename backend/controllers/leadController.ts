@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import * as XLSX from 'xlsx';
-import pdf from 'pdf-parse';
+const pdf = require('pdf-parse');
 import { AuthRequest } from '../middleware/auth';
 import Lead from '../models/Lead';
 import LeadList from '../models/LeadList';
@@ -8,24 +8,24 @@ import LeadList from '../models/LeadList';
 // Smart pattern recognition for emails and names
 const extractEmailsAndNames = (text: string): Array<{ email: string; name?: string; company?: string }> => {
   const results: Array<{ email: string; name?: string; company?: string }> = [];
-  
+
   // Email regex pattern
   const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi;
   const emails = text.match(emailRegex) || [];
-  
+
   // Name patterns (before email, capitalized words)
   const nameRegex = /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)(?=\s*[:\-,]?\s*[a-zA-Z0-9._-]+@)/g;
-  
+
   // Company patterns (common suffixes)
   const companyRegex = /([A-Z][a-zA-Z0-9\s&]+(?:Inc|LLC|Ltd|Corp|Corporation|Company|Co\.|Group|Solutions|Technologies|Tech)\.?)/g;
-  
+
   const lines = text.split('\n');
-  
+
   for (const email of emails) {
     const emailLower = email.toLowerCase();
     let name = '';
     let company = '';
-    
+
     // Find the line containing this email
     for (const line of lines) {
       if (line.toLowerCase().includes(emailLower)) {
@@ -43,7 +43,7 @@ const extractEmailsAndNames = (text: string): Array<{ email: string; name?: stri
               .join(' ');
           }
         }
-        
+
         // Try to extract company
         const companyMatch = line.match(companyRegex);
         if (companyMatch) {
@@ -58,24 +58,24 @@ const extractEmailsAndNames = (text: string): Array<{ email: string; name?: stri
             }
           }
         }
-        
+
         break;
       }
     }
-    
+
     // If no name found, use email username
     if (!name) {
       const emailPart = email.split('@')[0];
       name = emailPart.charAt(0).toUpperCase() + emailPart.slice(1);
     }
-    
+
     results.push({
       email: emailLower,
       name: name || undefined,
       company: company || undefined
     });
   }
-  
+
   return results;
 };
 
@@ -107,13 +107,13 @@ export const uploadCSV = async (req: AuthRequest, res: Response) => {
       const pdfData = await pdf(req.file.buffer);
       const text = pdfData.text;
       const extracted = extractEmailsAndNames(text);
-      
+
       extractedData = extracted.map(item => ({
         name: item.name || 'Unknown',
         email: item.email,
         companyName: item.company
       }));
-      
+
     } else if (
       fileType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
       fileType === 'application/vnd.ms-excel' ||
@@ -185,14 +185,14 @@ export const uploadCSV = async (req: AuthRequest, res: Response) => {
         }
       }
     } else {
-      return res.status(400).json({ 
-        error: 'Unsupported file type. Please upload CSV, Excel (.xlsx, .xls), or PDF files.' 
+      return res.status(400).json({
+        error: 'Unsupported file type. Please upload CSV, Excel (.xlsx, .xls), or PDF files.'
       });
     }
 
     if (extractedData.length === 0) {
-      return res.status(400).json({ 
-        error: 'No valid email addresses found in the file. Please check the file content.' 
+      return res.status(400).json({
+        error: 'No valid email addresses found in the file. Please check the file content.'
       });
     }
 
@@ -234,8 +234,8 @@ export const uploadCSV = async (req: AuthRequest, res: Response) => {
 
     if (insertedCount === 0) {
       await LeadList.deleteOne({ _id: leadList._id });
-      return res.status(400).json({ 
-        error: 'All leads already exist in the database. No new leads were added.' 
+      return res.status(400).json({
+        error: 'All leads already exist in the database. No new leads were added.'
       });
     }
 
@@ -244,7 +244,7 @@ export const uploadCSV = async (req: AuthRequest, res: Response) => {
     leadList.activeLeads = insertedCount;
     await leadList.save();
 
-    res.status(201).json({ 
+    res.status(201).json({
       message: `${insertedCount} leads imported successfully${skippedCount > 0 ? `, ${skippedCount} duplicates skipped` : ''}`,
       leadList: {
         id: leadList._id,
@@ -255,7 +255,7 @@ export const uploadCSV = async (req: AuthRequest, res: Response) => {
 
   } catch (error: any) {
     console.error('File upload error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to process file. Please check the file format and try again.',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
